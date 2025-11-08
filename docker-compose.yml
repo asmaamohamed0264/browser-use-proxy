@@ -6,6 +6,7 @@ services:
     container_name: browser-use-proxy
     networks:
       - dokploy-network
+      - n8n-n8nwithpostgres-xchcek
     ports:
       - "8000:8000"
     environment:
@@ -67,4 +68,6 @@ services:
 
 networks:
   dokploy-network:
+    external: true
+  n8n-n8nwithpostgres-xchcek:
     external: true
