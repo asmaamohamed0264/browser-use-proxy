@@ -45,17 +45,94 @@ services:
             except Exception as e:
                 return {'status': 'unhealthy', 'error': str(e)}
         
-        @app.post('/api/task')
-        async def execute_task(request: dict, authorization: str = Header(None)):
+        @app.get('/api/v1/ping')
+        async def ping():
+            """Health check endpoint for n8n node validation"""
+            return {'status': 'success', 'message': 'API is running'}
+        
+        @app.post('/api/v1/run-task')
+        async def run_task(request: dict, authorization: str = Header(None)):
             if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
                 raise HTTPException(status_code=401, detail='Unauthorized')
             
             try:
                 async with httpx.AsyncClient(timeout=300.0) as client:
                     response = await client.post(
-                        f'{BROWSER_USE_URL}/execute',
+                        f'{BROWSER_USE_URL}/api/v1/run-task',
                         json=request
                     )
+                    return response.json()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @app.get('/api/v1/task/{task_id}')
+        async def get_task(task_id: str, authorization: str = Header(None)):
+            if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
+                raise HTTPException(status_code=401, detail='Unauthorized')
+            
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(f'{BROWSER_USE_URL}/api/v1/task/{task_id}')
+                    return response.json()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @app.get('/api/v1/task/{task_id}/status')
+        async def get_task_status(task_id: str, authorization: str = Header(None)):
+            if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
+                raise HTTPException(status_code=401, detail='Unauthorized')
+            
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(f'{BROWSER_USE_URL}/api/v1/task/{task_id}/status')
+                    return response.json()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @app.put('/api/v1/stop-task/{task_id}')
+        async def stop_task(task_id: str, authorization: str = Header(None)):
+            if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
+                raise HTTPException(status_code=401, detail='Unauthorized')
+            
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.put(f'{BROWSER_USE_URL}/api/v1/stop-task/{task_id}')
+                    return response.json()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @app.put('/api/v1/pause-task/{task_id}')
+        async def pause_task(task_id: str, authorization: str = Header(None)):
+            if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
+                raise HTTPException(status_code=401, detail='Unauthorized')
+            
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.put(f'{BROWSER_USE_URL}/api/v1/pause-task/{task_id}')
+                    return response.json()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @app.put('/api/v1/resume-task/{task_id}')
+        async def resume_task(task_id: str, authorization: str = Header(None)):
+            if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
+                raise HTTPException(status_code=401, detail='Unauthorized')
+            
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.put(f'{BROWSER_USE_URL}/api/v1/resume-task/{task_id}')
+                    return response.json()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @app.get('/api/v1/list-tasks')
+        async def list_tasks(authorization: str = Header(None)):
+            if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
+                raise HTTPException(status_code=401, detail='Unauthorized')
+            
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(f'{BROWSER_USE_URL}/api/v1/list-tasks')
                     return response.json()
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
