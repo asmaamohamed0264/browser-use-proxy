@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  browser-use-proxy:
+    image: python:3.11-slim
+    container_name: browser-use-proxy
+    networks:
+      - dokploy-network
+    ports:
+      - "8000:8000"
+    environment:
+      - BROWSER_USE_API_TOKEN=${BROWSER_USE_API_TOKEN}
+      - BROWSER_USE_HOST=n8n-browseruse-iulufe
+      - BROWSER_USE_PORT=7788
+    command: >
+      sh -c "pip install --no-cache-dir fastapi uvicorn httpx && 
+             python -c \"
+import asyncio
+from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import JSONResponse
+import httpx
+import os
+
+app = FastAPI(title='Browser Use Proxy')
+
+BROWSER_USE_HOST = os.getenv('BROWSER_USE_HOST', 'n8n-browseruse-iulufe')
+BROWSER_USE_PORT = os.getenv('BROWSER_USE_PORT', '7788')
+API_TOKEN = os.getenv('BROWSER_USE_API_TOKEN', '')
+BROWSER_USE_URL = f'http://{BROWSER_USE_HOST}:{BROWSER_USE_PORT}'
+
+@app.get('/')
+async def root():
+    return {'status': 'ok', 'service': 'browser-use-proxy', 'upstream': BROWSER_USE_URL}
+
+@app.get('/health')
+async def health():
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f'{BROWSER_USE_URL}/')
+            return {'status': 'healthy', 'upstream_status': response.status_code}
+    except Exception as e:
+        return {'status': 'unhealthy', 'error': str(e)}
+
+@app.post('/api/task')
+async def execute_task(request: dict, authorization: str = Header(None)):
+    if API_TOKEN and authorization != f'Bearer {API_TOKEN}':
+        raise HTTPException(status_code=401, detail='Unauthorized')
+    
+    try:
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            response = await client.post(
+                f'{BROWSER_USE_URL}/execute',
+                json=request
+            )
+            return response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='0.0.0.0', port=8000)
+\" "
+
+networks:
+  dokploy-network:
+    external: true
